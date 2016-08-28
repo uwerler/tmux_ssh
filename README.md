@@ -24,11 +24,9 @@ script can be used with cwm's wonderful "ssh to" dialog too by placing the
 following to You .cwmrc:
 
   command term 'ksh -c ". ~/.tmux/SSH.sh -c $1"'
-  
   bind CM-Return xterm
   
   #...and if autogroup preferred
-  
   autogroup 1 "SSH,XTerm"
 
 If You have xdotool installed it also focusses the xterm which is attached to

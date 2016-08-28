@@ -112,12 +112,14 @@ _setwin(){
   done
   
   $_tmux list-windows -F "#{window_id} #{pane_id} #{@HOST}" -t ${_sess} | {
+
+    _localhost=$(hostname -s)
   
     while read _winid _paneid _val; do
   
       _host=${VALS[${_paneid##%}]}
   
-      [[ -z ${_host} ]] && _host=$(hostname -s)
+      [[ -z ${_host} ]] && _host=${_localhost}
   
       [[ ${_val} == ${_host} ]] || \
       $_tmux setw -q -t ${_winid} "@HOST" "$(printf %-${_tabw}.${_tabw}s ${_host})"

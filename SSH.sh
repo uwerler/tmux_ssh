@@ -64,7 +64,7 @@ _checkname(){
       if [[ -z ${_ip} ]]; then
 
         _host=$(dig +short -x $2)
-        [[ -n "$_host" ]] && _host=${_host%%.*} || _host=$2
+        [[ -n "${_host}" ]] && _host=${_host%%.*} || _host=$2
       else
 
         _host=${2%%.*}
@@ -140,7 +140,7 @@ _setwin(){
   done
   
   # workaround as long as tmux crashes by setting "renumber-windows on" and hook
-  # "after-join-pane" or "after-move-pain" at the same time
+  # "after-join-pane" or "after-move-pane" at the same time
   $_tmux move-window -r -t ${_sess}
   $_tmux refresh-client -S 2>/dev/null
 }
@@ -167,7 +167,7 @@ _ssh() {
       
     trap "$_setenv -ur $TMUX_PANE; sh $0 -r" INT EXIT
 
-    $_setenv $TMUX_PANE ${_host}
+    [[ -n ${_host} ]] && $_setenv $TMUX_PANE ${_host}
     _setwin
     $_cmd
     exit
@@ -177,7 +177,8 @@ _ssh() {
     [[ -z ${_cmd} ]] && _runxdotool && exit
     
     _paneid=$($_tmux new-window -P -t ${_sess} -F '#D' ${_cmd})
-    $_setenv ${_paneid} ${_host}
+
+    [[ -n ${_host} ]] && $_setenv ${_paneid} ${_host}
     _setwin
     _runxdotool
   else

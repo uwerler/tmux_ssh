@@ -24,11 +24,9 @@ script can be used with cwm's wonderful "ssh to" dialog too by placing the
 following to Your .cwmrc:
 ```
    command term 'ksh -c ". ~/.tmux/SSH.sh -c $1"'
-   
    bind CM-Return xterm
    
    # ...and if autogroup is preferred
-   
    autogroup 1 "SSH,XTerm"
 ```
 If You have xdotool installed it also focusses the xterm which is attached to
@@ -39,3 +37,7 @@ and stable operating system and to Nicholas Marriot for tmux - a tool I can't
 work without it and his patience to answer my questions.
 
 Enjoy.
+
+With my sample config it looks then like this:
+
+![Screenshot](screenshot/tmux_ssh.png "Example config looks like this.")

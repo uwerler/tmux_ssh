@@ -26,6 +26,9 @@ following to Your .cwmrc:
    command term 'ksh -c ". ~/.tmux/SSH.sh -c $1"'
    bind CM-Return xterm
    
+   # ...to launch the server only with on window
+   bind CM-s 'ksh -c ". ~/.tmux/SSH.sh -c"'
+   
    # ...and if autogroup is preferred
    autogroup 1 "SSH,XTerm"
 ```

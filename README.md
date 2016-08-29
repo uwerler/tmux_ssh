@@ -13,24 +13,24 @@ own session. For simple testing simply run "sh ~/.tmux/SSH.sh -c targethost".
 Without arguments it starts a session without ssh and attaches a xterm to it.
 
 It can be configured via a shell alias like this:
-
+```
    alias ssh="sh ~/.tmux/SSH.sh -c"
-
+```
 I wrote and tested this under OpenBSD's ksh. I guess bash should work too but
 not tested yet.
 
 As a lucky OpenBSD user I also use cwm as my preferred window manager.  This
 script can be used with cwm's wonderful "ssh to" dialog too by placing the
-following to You .cwmrc:
-
+following to Your .cwmrc:
+```
    command term 'ksh -c ". ~/.tmux/SSH.sh -c $1"'
    
    bind CM-Return xterm
    
-   # if autogroup preferred
+   # ...and if autogroup is preferred
    
    autogroup 1 "SSH,XTerm"
-
+```
 If You have xdotool installed it also focusses the xterm which is attached to
 the session or spawns a new term and reattaches to an existing session.
 

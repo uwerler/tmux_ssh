@@ -1,0 +1,8 @@
+# hostname/pattern | style - first match counts
+
+fw*      fg=green #comment
+*dev*    fg=cyan
+*prod*   fg=red
+*backup* fg=blue
+*admin*  fg=magenta
+#*        fg=white

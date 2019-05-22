@@ -12,15 +12,18 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-_sock="SSH"
-_sess="SSH"
+_path=$0
+_path=${_path%/*}
+_sock=$0
+_sock=${_sock##*/}
+_sock=${_sock%%.*}
+_ssh_config=${_path}/${_sock}.conf
+_style_map=${_path}/${_sock}.map
+_sess=${_sock}
 _tabw="15"  # width of the tabs created
 
 # run tmux with some defaults like utf-8 support and at an separate socket
 _tmux="tmux -2 -u -L ${_sock}"
-
-# set the variable "%#{pane_id}" in tmux environment to the hostname
-_setenv="${_tmux} setenv -t ${_sess}"
 
 usage(){
 
@@ -29,29 +32,26 @@ echo \
 usage: /bin/sh $0 -cgsu [args]
   -c : start server and connect xterm or attach term to detached session
   -c args: start server and run ssh with args or start ssh and attach xterm
-  -r refresh all \"tabs\" with vals from active panes
-  -s %num value: set value to var %num
-  -u %num: unset var %num
-
- where %num is the pane ID.
+  -r sets pane title of the active pane
 
  For usage from within shell create an alias like this:
-  alias ssh=\"sh ~/.tmux/SSH.sh -c\"
+  alias ssh=\"sh $0 -c\"
 
- For usage from within cwm put this in Your ~/.cwmrc:
-  command term \'ksh -c \". ~/.tmux/SSH.sh -c \$1\"\'
+ For usage from within cwm put this in your ~/.cwmrc:
+  command term \'ksh -c \". $0 -c \$1\"\'
   bind CM-Return xterm
   #...and if autogroup preferred
   autogroup 1 \"${_sess},XTerm\"
 
   If xdotool is installed it focusses automatically to the xterm running this
-  tmux session or reattaches a xterm if the session is detached.
+  tmux session or attaches a xterm if the session is detached.
 "
 exit 1
 }
 
 _checkname(){
 
+  local _host
   # parse the output from ssh -G
   for _l; do
 
@@ -63,11 +63,12 @@ _checkname(){
 
       if [[ -z ${_ip} ]]; then
 
-        _host=$(dig +short -x $2)
-        [[ -n "${_host}" ]] && _host=${_host%%.*} || _host=$2
+        _host=$(dig +short -x ${2})
+        [[ -n "${_host}" ]] && _host=${_host} || _host=${2}
+
       else
 
-        _host=${2%%.*}
+        _host=${2}
       fi
       break
       ;;
@@ -75,12 +76,12 @@ _checkname(){
 
     shift
   done
+  print ${_host}
 }
 
 _runxdotool(){
 
-  # with xdotool installed, activate the window or reattach to a detached
-  # session
+  # with xdotool installed, activate the window or reattach to a detached session
   if type xdotool >/dev/null; then
 
     _winid="xdotool search --classname ${_sess}"
@@ -92,57 +93,42 @@ _runxdotool(){
   fi
 }
 
-_setwin(){
-  # get all environment variables and store them 
-  for _var in $($_tmux show-env -t ${_sess}); do
-  
-    case $_var in
-  
-      %+([0-9a-f])*)
-  
-        _index=${_var%%=*}
-        # make a list of existing variables
-        INDEX="${INDEX} ${_index}"
-        _index=${_index##%}
-        _value=${_var##*=}
-        # make an array with values
-        VALS[$_index]=${_value}
-      ;;
-    esac
-  done
-  
-  $_tmux list-windows -F "#{window_id} #{pane_id} #{@HOST}" -t ${_sess} | {
+_readstyle() {
 
-    _localhost=$(hostname -s)
-  
-    while read _winid _paneid _val; do
-  
-      _host=${VALS[${_paneid##%}]}
-  
-      [[ -z ${_host} ]] && _host=${_localhost}
-  
-      [[ ${_val} == ${_host} ]] || \
-      $_tmux setw -q -t ${_winid} "@HOST" "$(printf %-${_tabw}.${_tabw}s ${_host})"
-    done
-  }
-  
-  for _pane in $($_tmux list-panes -s -t ${_sess} -F '#D'); do
-  
-    # make a list of all panes in session
-    CURPANES="${CURPANES} X${_pane}X"
-  done
-  
-  # compare environment with current panes and delete unused variables
-  for _pane in ${INDEX}; do
-  
-    [[ ${CURPANES} == *X${_pane}X* ]] || \
-    $_setenv -ur ${_pane}
-  done
-  
-  # workaround as long as tmux crashes by setting "renumber-windows on" and hook
-  # "after-join-pane" or "after-move-pane" at the same time
-  $_tmux move-window -r -t ${_sess}
-  $_tmux refresh-client -S 2>/dev/null
+  [[ -s $_style_map ]] || return 0
+
+  while read _pattern _style; do
+
+    _pattern=${_pattern%%#*} # delete comments
+    _style=${_style%%#*}     # delete comments
+
+    [[ -z ${_pattern} || -z ${_style} ]] && continue
+
+    [[ ${_host} == ${_pattern} ]] && break
+
+  done <$_style_map
+}
+
+_setpane(){
+
+  local _title=${1} _style
+        _title=${_title%%.*}
+
+  #[[ -z ${_title} ]] && _title=$(hostname -s)
+  [[ -z ${_title} ]] && _title=$(hostname -s)
+
+  $_tmux select-pane -T "$(printf %-${_tabw}.${_tabw}s ${_title})"
+
+  _readstyle
+
+	if [[ -n ${_oldstyle} ]]; then
+
+		$_tmux select-pane -P ${_oldstyle}
+
+  elif [[ -n ${_style} ]]; then
+
+		$_tmux select-pane -P $_style
+  fi
 }
 
 _ssh() {
@@ -156,8 +142,8 @@ _ssh() {
     _cmd="ssh -t $@"
 
     # let ssh parse the command line so we are sane
-    # avoid override the hostname via main config
-    _checkname $(unalias ssh; ssh -F /dev/null -G $@)
+    # avoid overriding the hostname via main config
+    _host=$(_checkname $(/usr/bin/ssh -F /dev/null -G $@))
   fi
 
   [[ $($_tmux list-session -F "#S" 2>/dev/null) == *${_sess}* ]] && _s=${_sess}
@@ -165,37 +151,43 @@ _ssh() {
   # check if called from inside our tabbed tmux to avoid a new window
   if [[ $TMUX == *${_sock}* && ${_s} == ${_sess} ]]; then
       
-    trap "$_setenv -ur $TMUX_PANE; sh $0 -r" INT EXIT
+    # trap to be able to name the pane back after ssh session endet from within the pane
+    trap "_oldstyle=$($_tmux select-pane -g) _setpane" INT EXIT
 
-    [[ -n ${_host} ]] && $_setenv $TMUX_PANE ${_host}
-    _setwin
+		_setpane ${_host}
+
     $_cmd
     exit
 
+  # run in already started session or reattach
   elif [[ ${_s} == ${_sess} ]]; then
 
     [[ -z ${_cmd} ]] && _runxdotool && exit
     
-    _paneid=$($_tmux new-window -P -t ${_sess} -F '#D' ${_cmd})
+    $_tmux new-window -P -t ${_sess} ${_cmd}
 
-    [[ -n ${_host} ]] && $_setenv ${_paneid} ${_host}
-    _setwin
+    _setpane ${_host}
+
     _runxdotool
+
+  # create new session
   else
 
-    _paneid=$($_tmux -f ~/.tmux/SSH.conf new-session -P -d -F '#D' -s ${_sess} ${_cmd})
+    $_tmux -f $_ssh_config new-session -d -s ${_sess} ${_cmd}
+    # add some settings into the session environment
+    $_tmux set-environment -g -t ${_sess} CMD "/bin/sh $0 -r"
+    $_tmux set-hook -g -t ${_sess} after-new-window "run \$CMD"
+    $_tmux set-hook -g -t ${_sess} after-split-window "run \$CMD"
+    $_tmux bind R source-file $_ssh_config \\\; display-message "source-file done"
 
-    [[ -n ${_paneid} ]] || exit 1
-
-    [[ -n ${_host} ]] && $_setenv ${_paneid} ${_host}
-    _setwin
+    _setpane ${_host}
 
     xterm -title ${_sess} -name ${_sess} -e \
     $_tmux attach -t ${_sess} 2>/dev/null &
   fi
 }
 
-getopts ":s:u:cr" _opt
+getopts ":cr" _opt
 shift $((OPTIND-1))
 
 case "$_opt" in
@@ -205,18 +197,7 @@ case "$_opt" in
     ;;
 
   r)
-    _setwin
-    exit 0
-    ;;
-
-  s)
-    [[ $OPTARG != %+([0-9]) ]] && usage
-    $_setenv $OPTARG $@
-    ;;
-
-  u)
-    [[ $OPTARG != %+([0-9]) ]] && usage
-    $_setenv -ur $OPTARG
+    _setpane
     ;;
 
   *) usage

@@ -19,7 +19,7 @@ _sock=${_sock##*/}
 _sock=${_sock%%.*}
 _ssh_config=${_path}/${_sock}.conf
 _style_map=${_path}/${_sock}.map
-_sess=${_sock}
+_sess="SSH"
 _tabw="15"  # width of the tabs created
 
 # run tmux with some defaults like utf-8 support and at an separate socket
@@ -197,7 +197,7 @@ case "$_opt" in
     ;;
 
   r)
-    _setpane
+    _setpane $OPTARG $@
     ;;
 
   *) usage

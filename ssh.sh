@@ -76,7 +76,7 @@ _checkname(){
 
     shift
   done
-  print ${_host}
+  [[ ${SHELL} == /bin/bash ]] && printf ${_host} || print -r -- ${_host}
 }
 
 _runxdotool(){
@@ -175,7 +175,7 @@ _ssh() {
 
     $_tmux -f $_ssh_config new-session -d -s ${_sess} ${_cmd}
     # add some settings into the session environment
-    $_tmux set-environment -g -t ${_sess} CMD "/bin/sh $0 -r"
+    $_tmux set-environment -g -t ${_sess} CMD "/bin/bash $0 -r"
     $_tmux set-hook -g -t ${_sess} after-new-window "run \$CMD"
     $_tmux set-hook -g -t ${_sess} after-split-window "run \$CMD"
     $_tmux bind R source-file $_ssh_config \\\; display-message "source-file done"
@@ -197,7 +197,7 @@ case "$_opt" in
     ;;
 
   r)
-    _setpane $OPTARG $@
+    _setpane
     ;;
 
   *) usage

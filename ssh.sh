@@ -58,17 +58,18 @@ _checkname(){
     case $_l in hostname)
 
       # make stupid check if hostname is an IP 
+       [[ ${SHELL} == /bin/bash ]] && shopt -s extglob
       _ip=${2##+([0-9]).+([0-9]).+([0-9]).+([0-9])}
       _ip=${_ip##+([0-9a-f]):+([0-9a-f]):+([0-9a-f]):*([0-9a-f:]):+([0-9a-f])}
 
       if [[ -z ${_ip} ]]; then
 
         _host=$(dig +short -x ${2})
-        [[ -n "${_host}" ]] && _host=${_host} || _host=${2}
+        [[ -n "${_host}" ]] && _host=${_host%%.*} || _host=${2}
 
       else
 
-        _host=${2}
+        _host=${2%%.*}
       fi
       break
       ;;
@@ -112,7 +113,6 @@ _readstyle() {
 _setpane(){
 
   local _title=${1} _style
-        _title=${_title%%.*}
 
   [[ -z ${_title} ]] && _title=$(hostname -s)
 

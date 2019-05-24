@@ -29,7 +29,7 @@ usage(){
 
 echo \
   "
-usage: /bin/sh $0 -cgsu [args]
+usage: /bin/sh $0 -cr [args]
   -c : start server and connect xterm or attach term to detached session
   -c args: start server and run ssh with args or start ssh and attach xterm
   -r sets pane title of the active pane
@@ -114,7 +114,6 @@ _setpane(){
   local _title=${1} _style
         _title=${_title%%.*}
 
-  #[[ -z ${_title} ]] && _title=$(hostname -s)
   [[ -z ${_title} ]] && _title=$(hostname -s)
 
   $_tmux select-pane -T "$(printf %-${_tabw}.${_tabw}s ${_title})"

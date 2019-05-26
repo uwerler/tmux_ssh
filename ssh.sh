@@ -51,25 +51,26 @@ exit 1
 
 _checkname(){
 
-  local _host
   # parse the output from ssh -G
   for _l; do
 
     case $_l in hostname)
 
       # make stupid check if hostname is an IP 
-       [[ ${SHELL} == /bin/bash ]] && shopt -s extglob
+      [[ ${SHELL} == *bash ]] && shopt -s extglob
       _ip=${2##+([0-9]).+([0-9]).+([0-9]).+([0-9])}
       _ip=${_ip##+([0-9a-f]):+([0-9a-f]):+([0-9a-f]):*([0-9a-f:]):+([0-9a-f])}
 
       if [[ -z ${_ip} ]]; then
 
+        _isip=1
         _host=$(dig +short -x ${2})
-        [[ -n "${_host}" ]] && _host=${_host%%.*} || _host=${2}
+
+        [[ -n "${_host}" ]] || _host=${2}
 
       else
 
-        _host=${2%%.*}
+        _host=${2}
       fi
       break
       ;;
@@ -77,7 +78,6 @@ _checkname(){
 
     shift
   done
-  [[ ${SHELL} == /bin/bash ]] && printf ${_host} || print -r -- ${_host}
 }
 
 _runxdotool(){
@@ -114,11 +114,13 @@ _setpane(){
 
   local _title=${1} _style
 
+  _readstyle
+
+  [[ -z ${_isip} ]] && _title=${_title%%.*}
+
   [[ -z ${_title} ]] && _title=$(hostname -s)
 
   $_tmux select-pane -T "$(printf %-${_tabw}.${_tabw}s ${_title})"
-
-  _readstyle
 
 	if [[ -n ${_oldstyle} ]]; then
 
@@ -142,7 +144,8 @@ _ssh() {
 
     # let ssh parse the command line so we are sane
     # avoid overriding the hostname via main config
-    _host=$(_checkname $(/usr/bin/ssh -F /dev/null -G $@))
+    #_host=$(_checkname $(/usr/bin/ssh -F /dev/null -G $@))
+    _checkname $(/usr/bin/ssh -F /dev/null -G $@)
   fi
 
   [[ $($_tmux list-session -F "#S" 2>/dev/null) == *${_sess}* ]] && _s=${_sess}
@@ -163,18 +166,18 @@ _ssh() {
 
     [[ -z ${_cmd} ]] && _runxdotool && exit
     
-    $_tmux new-window -P -t ${_sess} ${_cmd}
+    _winid=$($_tmux new-window -P -t ${_sess} -F '#I' ${_cmd} )
 
-    _setpane ${_host}
+    [[ ${_winid} == $($_tmux list-panes -t ${_sess} -F '#I') ]] && _setpane ${_host}
 
     _runxdotool
 
   # create new session
   else
 
-    $_tmux -f $_ssh_config new-session -d -s ${_sess} ${_cmd}
+    $_tmux -f $_ssh_config new-session -d -s ${_sess} ${_cmd} || exit
     # add some settings into the session environment
-    $_tmux set-environment -g -t ${_sess} CMD "/bin/bash $0 -r"
+    $_tmux set-environment -g -t ${_sess} CMD "${SHELL} $0 -r"
     $_tmux set-hook -g -t ${_sess} after-new-window "run \$CMD"
     $_tmux set-hook -g -t ${_sess} after-split-window "run \$CMD"
     $_tmux bind R source-file $_ssh_config \\\; display-message "source-file done"

@@ -122,13 +122,13 @@ _setpane(){
 
   $_tmux select-pane -T "$(printf %-${_tabw}.${_tabw}s ${_title})"
 
-	if [[ -n ${_oldstyle} ]]; then
+  if [[ -n ${_oldstyle} ]]; then
 
-		$_tmux select-pane -P ${_oldstyle}
+    $_tmux select-pane -P ${_oldstyle}
 
   elif [[ -n ${_style} ]]; then
 
-		$_tmux select-pane -P $_style
+    $_tmux select-pane -P $_style
   fi
 }
 
@@ -156,7 +156,7 @@ _ssh() {
     # trap to be able to name the pane back after ssh session endet from within the pane
     trap "_oldstyle=$($_tmux select-pane -g) _setpane" INT EXIT
 
-		_setpane ${_host}
+    _setpane ${_host}
 
     $_cmd
     exit

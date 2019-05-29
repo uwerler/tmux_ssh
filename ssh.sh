@@ -78,6 +78,7 @@ _checkname(){
 
     shift
   done
+  [[ ${SHELL} == *bash ]] && printf ${_host} || print -r -- ${_host}
 }
 
 _runxdotool(){
@@ -112,7 +113,7 @@ _readstyle() {
 
 _setpane(){
 
-  local _title=${1} _style
+  local _paneid=${1} _title=${2} _style
 
   _readstyle
 
@@ -120,15 +121,15 @@ _setpane(){
 
   [[ -z ${_title} ]] && _title=$(hostname -s)
 
-  $_tmux select-pane -T "$(printf %-${_tabw}.${_tabw}s ${_title})"
+  $_tmux select-pane -T "$(printf %-${_tabw}.${_tabw}s ${_title})" -t ${_paneid}
 
   if [[ -n ${_oldstyle} ]]; then
 
-    $_tmux select-pane -P ${_oldstyle}
+    $_tmux select-pane -P ${_oldstyle} -t ${_paneid}
 
   elif [[ -n ${_style} ]]; then
 
-    $_tmux select-pane -P $_style
+    $_tmux select-pane -P $_style -t ${_paneid}
   fi
 }
 
@@ -144,8 +145,7 @@ _ssh() {
 
     # let ssh parse the command line so we are sane
     # avoid overriding the hostname via main config
-    #_host=$(_checkname $(/usr/bin/ssh -F /dev/null -G $@))
-    _checkname $(/usr/bin/ssh -F /dev/null -G $@)
+    _host=$(_checkname $(/usr/bin/ssh -F /dev/null -G $@))
   fi
 
   [[ $($_tmux list-session -F "#S" 2>/dev/null) == *${_sess}* ]] && _s=${_sess}
@@ -154,35 +154,33 @@ _ssh() {
   if [[ $TMUX == *${_sock}* && ${_s} == ${_sess} ]]; then
       
     # trap to be able to name the pane back after ssh session endet from within the pane
-    trap "_oldstyle=$($_tmux select-pane -g) _setpane" INT EXIT
+    trap "_oldstyle=$($_tmux select-pane -g) _setpane ${TMUX_PANE}" INT EXIT
 
-    _setpane ${_host}
-
+    _setpane ${TMUX_PANE} ${_host}
     $_cmd
-    exit
 
   # run in already started session or reattach
   elif [[ ${_s} == ${_sess} ]]; then
 
     [[ -z ${_cmd} ]] && _runxdotool && exit
     
-    _winid=$($_tmux new-window -P -t ${_sess} -F '#I' ${_cmd} )
+    _paneid=$($_tmux new-window -P -t ${_sess} -F '#D' ${_cmd})
 
-    [[ ${_winid} == $($_tmux list-panes -t ${_sess} -F '#I') ]] && _setpane ${_host}
+    _setpane ${_paneid} ${_host}
 
     _runxdotool
 
   # create new session
   else
 
-    $_tmux -f $_ssh_config new-session -d -s ${_sess} ${_cmd} || exit
+    _paneid=$($_tmux -f $_ssh_config new-session -d -P -F '#D' -s ${_sess} ${_cmd}) || exit
     # add some settings into the session environment
-    $_tmux set-environment -g -t ${_sess} CMD "${SHELL} $0 -r"
+    $_tmux set-environment -g -t ${_sess} CMD "${SHELL} $0 -r \#D \#h \#T"
     $_tmux set-hook -g -t ${_sess} after-new-window "run \$CMD"
     $_tmux set-hook -g -t ${_sess} after-split-window "run \$CMD"
     $_tmux bind R source-file $_ssh_config \\\; display-message "source-file done"
 
-    _setpane ${_host}
+    _setpane ${_paneid} ${_host}
 
     xterm -title ${_sess} -name ${_sess} -e \
     $_tmux attach -t ${_sess} 2>/dev/null &
@@ -199,7 +197,7 @@ case "$_opt" in
     ;;
 
   r)
-    _setpane
+    _setpane $@
     ;;
 
   *) usage

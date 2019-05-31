@@ -51,11 +51,10 @@ exit 1
 
 _checkname(){
 
-  # parse the output from ssh -G
   for _l; do
 
     case $_l in hostname)
-
+ 
       # make stupid check if hostname is an IP 
       [[ ${SHELL} == *bash ]] && shopt -s extglob
       _ip=${2##+([0-9]).+([0-9]).+([0-9]).+([0-9])}
@@ -78,11 +77,10 @@ _checkname(){
 
     shift
   done
-  [[ ${SHELL} == *bash ]] && printf ${_host} || print -r -- ${_host}
 }
 
 _runxdotool(){
-
+ 
   # with xdotool installed, activate the window or reattach to a detached session
   if type xdotool >/dev/null; then
 
@@ -145,7 +143,7 @@ _ssh() {
 
     # let ssh parse the command line so we are sane
     # avoid overriding the hostname via main config
-    _host=$(_checkname $(/usr/bin/ssh -F /dev/null -G $@))
+    _checkname $(/usr/bin/ssh -F /dev/null -G $@)
   fi
 
   [[ $($_tmux list-session -F "#S" 2>/dev/null) == *${_sess}* ]] && _s=${_sess}

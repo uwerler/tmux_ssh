@@ -3,7 +3,7 @@
 fw*      fg=green #comment
 *dev*    fg=cyan
 *prod*   fg=red
-*dmz*    fg=red,bg=blue
+*dmz*    fg=red
 *backup* fg=blue
 *admin*  fg=magenta
 *auth*   fg=red

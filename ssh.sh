@@ -111,7 +111,7 @@ _readstyle() {
 
 _setpane(){
 
-  local _paneid=${1} _title=${2} _style
+  local _paneid=${1} _title=${2}
 
   _readstyle
 
@@ -119,16 +119,34 @@ _setpane(){
 
   [[ -z ${_title} ]] && _title=$(hostname -s)
 
-  $_tmux select-pane -T "$(printf %-${_tabw}.${_tabw}s ${_title})" -t ${_paneid}
+#  $_tmux select-pane -T "$(printf %-${_tabw}.${_tabw}s ${_title})" -t ${_paneid}
+  $_tmux select-pane -T "${_title}" -t ${_paneid}
 
   if [[ -n ${_oldstyle} ]]; then
 
     $_tmux select-pane -P ${_oldstyle} -t ${_paneid}
+    #$_tmux setw window-status-style ${_oldstyle}
+    #$_tmux setw window-status-current-style ${_oldstyle}
 
   elif [[ -n ${_style} ]]; then
 
     $_tmux select-pane -P $_style -t ${_paneid}
+    #$_tmux setw window-status-style $_style
+    #$_tmux setw window-status-style $_style
+    #$_tmux setw window-status-current-style $_style
   fi
+
+  _pstyle=$($_tmux select-pane -g)
+  _fg=${_pstyle##*fg=}
+  _fg=${_fg%%,*}
+
+  #$_tmux setw window-status-style fg=${_fg},bg=colour235,reverse
+
+  #$_tmux setw window-status-style "bg=${_fg},fg=colour255"
+  #$_tmux setw window-status-current-style "reverse,bold"
+  $_tmux setw window-status-style "fg=${_fg}"
+  $_tmux setw window-status-current-style "fg=${_fg},bg=colour240"
+
 }
 
 _ssh() {
@@ -173,15 +191,19 @@ _ssh() {
 
     _paneid=$($_tmux -f $_ssh_config new-session -d -P -F '#D' -s ${_sess} ${_cmd}) || exit
     # add some settings into the session environment
-    $_tmux set-environment -g -t ${_sess} CMD "${SHELL} $0 -r \#D \#h \#T"
+    #$_tmux set-environment -g -t ${_sess} CMD "${SHELL} $0 -r \#D \#h \#T"
+    $_tmux set-environment -g -t ${_sess} CMD "${SHELL} $0 -r \#D \#T"
     $_tmux set-hook -g -t ${_sess} after-new-window "run \$CMD"
     $_tmux set-hook -g -t ${_sess} after-split-window "run \$CMD"
-    $_tmux bind R source-file $_ssh_config \\\; display-message "source-file done"
+    $_tmux set-hook -g -t ${_sess} pane-focus-in "run \$CMD"
+    $_tmux bind r source-file $_ssh_config \\\; display-message "source-file done"
 
     _setpane ${_paneid} ${_host}
 
     xterm -title ${_sess} -name ${_sess} -e \
     $_tmux attach -t ${_sess} 2>/dev/null &
+    #"xdotool key ctrl+alt+m; $_tmux attach -t ${_sess} 2>/dev/null" &
+    type xdotool && sleep 0.2 && xdotool key ctrl+alt+m
   fi
 }
 

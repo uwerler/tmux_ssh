@@ -1,3 +1,5 @@
+MOVED TO MY OWN SERVER https://gitea.werler.is/Public/tmux_ssh
+
 ssh.sh is a small wrapper script around ssh to open a ssh connection in tmux.
 
 The main purpose of this script is to configure the tmux windows titles with

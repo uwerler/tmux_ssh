@@ -1,4 +1,4 @@
-MOVED TO MY OWN SERVER https://gitea.werler.is/Public/tmux_ssh
+<font color="red"> --- MOVED TO MY OWN SERVER https://gitea.werler.is/Public/tmux_ssh --- </font>
 
 ssh.sh is a small wrapper script around ssh to open a ssh connection in tmux.
 

@@ -200,7 +200,7 @@ _ssh() {
 
     _setpane ${_paneid} ${_host}
 
-    xterm -title ${_sess} -name ${_sess} -e \
+    xterm -maximized -title ${_sess} -name ${_sess} -e \
     $_tmux attach -t ${_sess} 2>/dev/null &
     #"xdotool key ctrl+alt+m; $_tmux attach -t ${_sess} 2>/dev/null" &
     type xdotool && sleep 0.2 && xdotool key ctrl+alt+m
